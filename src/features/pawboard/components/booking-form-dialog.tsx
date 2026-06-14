@@ -27,6 +27,8 @@ interface Props {
   serviceTypes: ServiceType[]
   hstRate: number
   booking?: Booking
+  /** Local YYYY-MM-DD to prefill the start date when creating a new booking. */
+  defaultDate?: string
 }
 
 interface FormState {
@@ -49,8 +51,11 @@ const statuses: Booking['status'][] = [
 ]
 const methods: PaymentMethod[] = ['etransfer', 'cash', 'card', 'other']
 
-function defaultRange() {
-  const start = new Date()
+function defaultRange(baseDate?: string) {
+  const start =
+    baseDate && /^\d{4}-\d{2}-\d{2}$/.test(baseDate)
+      ? new Date(`${baseDate}T17:00`)
+      : new Date()
   start.setHours(17, 0, 0, 0)
   const end = new Date(start)
   end.setDate(end.getDate() + 1)
@@ -69,6 +74,7 @@ export function BookingFormDialog({
   serviceTypes,
   hstRate,
   booking,
+  defaultDate,
 }: Props) {
   const buildInitial = (): FormState => {
     if (booking) {
@@ -83,7 +89,7 @@ export function BookingFormDialog({
         internalNotes: booking.internalNotes,
       }
     }
-    const range = defaultRange()
+    const range = defaultRange(defaultDate)
     return {
       ownerId: owners[0]?.id ?? '',
       serviceTypeId: serviceTypes[0]?.id ?? '',
@@ -114,13 +120,16 @@ export function BookingFormDialog({
       setValues(buildInitial())
     }
     // buildInitial is recomputed each render; only re-init when reopened.
-  }, [open, booking])
+  }, [open, booking, defaultDate])
 
   const ownerDogs = useMemo(
     () => dogs.filter((dog) => dog.ownerId === values.ownerId),
     [dogs, values.ownerId],
   )
   const service = serviceTypes.find((item) => item.id === values.serviceTypeId)
+  const selectedDogs = ownerDogs.filter((dog) =>
+    values.dogIds.includes(dog.id),
+  )
 
   const quote =
     service && values.startAt && values.endAt
@@ -128,8 +137,12 @@ export function BookingFormDialog({
           service,
           startAt: values.startAt,
           endAt: values.endAt,
-          dogCount: Math.max(1, values.dogIds.length),
+          dogs: selectedDogs.map((dog) => ({
+            name: dog.name,
+            rateCents: dog.customRateCents ?? service.defaultRateCents,
+          })),
           hstRate,
+          paymentMethod: values.paymentMethod,
         })
       : null
 
@@ -286,16 +299,35 @@ export function BookingFormDialog({
         </FormField>
 
         {quote ? (
-          <div className="bg-muted/40 sm:col-span-2 flex items-center justify-between rounded-lg border px-4 py-3 text-sm">
-            <span className="text-muted-foreground">
-              {quote.quantity} {quote.unitLabel}
-              {quote.quantity === 1 ? '' : 's'} ·{' '}
-              {Math.max(1, values.dogIds.length)} dog
-              {values.dogIds.length === 1 ? '' : 's'}
-            </span>
-            <span className="font-semibold">
-              <Money cents={quote.totalCents} /> total
-            </span>
+          <div className="bg-muted/40 sm:col-span-2 space-y-1.5 rounded-lg border px-4 py-3 text-sm">
+            <div className="text-muted-foreground flex items-center justify-between">
+              <span>
+                {quote.quantity} {quote.unitLabel}
+                {quote.quantity === 1 ? '' : 's'} ·{' '}
+                {Math.max(1, values.dogIds.length)} dog
+                {values.dogIds.length === 1 ? '' : 's'}
+              </span>
+              <Money cents={quote.subtotalCents} />
+            </div>
+            {quote.taxCents > 0 ? (
+              <div className="text-muted-foreground flex items-center justify-between">
+                <span>HST</span>
+                <Money cents={quote.taxCents} />
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between border-t pt-1.5 font-semibold">
+              <span>
+                Total{' '}
+                <span className="text-muted-foreground font-normal capitalize">
+                  ({values.paymentMethod})
+                </span>
+              </span>
+              <Money cents={quote.totalCents} />
+            </div>
+            <div className="text-muted-foreground pt-0.5 text-xs">
+              Cash {quote.cashQuote} · E-transfer {quote.etransferQuote} (incl.
+              HST)
+            </div>
           </div>
         ) : null}
 

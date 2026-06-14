@@ -3,7 +3,7 @@ import { useServerFn } from '@tanstack/react-start'
 import { useRouter } from '@tanstack/react-router'
 import { Bot, Check, Loader2, Send, Sparkles, X } from 'lucide-react'
 import { Button } from '../ui/button'
-import { Input } from '../ui/input'
+import { Textarea } from '../ui/textarea'
 import { cn } from '../../lib/utils'
 import {
   agentTurn,
@@ -190,6 +190,11 @@ export function AskAI() {
                     </button>
                   ))}
                 </div>
+                <div className="bg-brand/5 text-muted-foreground rounded-md border border-dashed px-3 py-2 text-xs">
+                  <span className="text-foreground font-medium">Tip:</span> paste
+                  a customer&rsquo;s text message and I&rsquo;ll draft the booking
+                  for you to approve.
+                </div>
               </div>
             ) : null}
 
@@ -289,17 +294,26 @@ export function AskAI() {
               e.preventDefault()
               send(input)
             }}
-            className="flex items-center gap-2 border-t p-3"
+            className="flex items-end gap-2 border-t p-3"
           >
-            <Input
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything…"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  send(input)
+                }
+              }}
+              rows={1}
+              placeholder="Ask anything, or paste a message…"
               disabled={busy || configured === false}
+              className="max-h-32 min-h-10 resize-none"
             />
             <Button
               type="submit"
               size="icon"
+              className="shrink-0"
               disabled={busy || !input.trim() || configured === false}
               aria-label="Send"
             >

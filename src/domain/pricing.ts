@@ -2,16 +2,33 @@ import type {
   BusinessSettings,
   InvoiceLineItem,
   Payment,
+  PaymentMethod,
   ServiceType,
   ServiceUnit,
 } from './pawboard'
+
+export interface PriceDog {
+  name: string
+  /** Effective per-unit rate for this dog (override or service base rate). */
+  rateCents: number
+}
 
 export interface PriceInput {
   service: Pick<ServiceType, 'name' | 'unit' | 'defaultRateCents' | 'taxable'>
   startAt: string | Date
   endAt: string | Date
-  dogCount: number
+  dogs: PriceDog[]
   hstRate: number
+  /** Cash is billed without HST; e-transfer/card/other include HST. */
+  paymentMethod?: PaymentMethod
+}
+
+/** HST applies only when the service is taxable and payment is not cash. */
+export function appliesHst(
+  taxable: boolean,
+  paymentMethod: PaymentMethod = 'etransfer',
+) {
+  return taxable && paymentMethod !== 'cash'
 }
 
 export interface PriceQuote {
@@ -101,17 +118,11 @@ export function calculateTax(subtotalCents: number, hstRate: number) {
 }
 
 export function calculatePriceQuote(input: PriceInput): PriceQuote {
-  const dogCount = Math.max(1, input.dogCount)
   const quantity = quantityForService(
     input.service.unit,
     input.startAt,
     input.endAt,
   )
-  const subtotalCents = input.service.defaultRateCents * quantity * dogCount
-  const taxCents = input.service.taxable
-    ? calculateTax(subtotalCents, input.hstRate)
-    : 0
-  const totalCents = subtotalCents + taxCents
   const unitLabel =
     input.service.unit === 'night'
       ? 'night'
@@ -119,24 +130,41 @@ export function calculatePriceQuote(input: PriceInput): PriceQuote {
         ? 'day'
         : 'booking'
 
+  const dogs = input.dogs.length
+    ? input.dogs
+    : [{ name: '', rateCents: input.service.defaultRateCents }]
+
+  const taxed = appliesHst(input.service.taxable, input.paymentMethod)
+
+  const lineItems: InvoiceLineItem[] = dogs.map((dog) => ({
+    description: dog.name
+      ? `${input.service.name} — ${dog.name}`
+      : input.service.name,
+    quantity,
+    unitLabel,
+    unitPriceCents: dog.rateCents,
+    taxable: taxed,
+    totalCents: dog.rateCents * quantity,
+  }))
+
+  const subtotalCents = lineItems.reduce((sum, item) => sum + item.totalCents, 0)
+  const taxCents = taxed ? calculateTax(subtotalCents, input.hstRate) : 0
+  const totalCents = subtotalCents + taxCents
+
+  // Both options for display, regardless of the selected method.
+  const fullTax = input.service.taxable
+    ? calculateTax(subtotalCents, input.hstRate)
+    : 0
+
   return {
     quantity,
     unitLabel,
     subtotalCents,
     taxCents,
     totalCents,
-    lineItems: [
-      {
-        description: `${input.service.name} × ${dogCount} dog${dogCount === 1 ? '' : 's'}`,
-        quantity,
-        unitLabel,
-        unitPriceCents: input.service.defaultRateCents * dogCount,
-        taxable: input.service.taxable,
-        totalCents: subtotalCents,
-      },
-    ],
-    cashQuote: formatMoney(totalCents),
-    etransferQuote: formatMoney(totalCents),
+    lineItems,
+    cashQuote: formatMoney(subtotalCents),
+    etransferQuote: formatMoney(subtotalCents + fullTax),
   }
 }
 

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import * as schema from '../../../db/schema'
 import {
   calculateInvoiceTotals,
@@ -38,14 +38,41 @@ export async function createInvoiceFromBooking(input: CreateInvoiceInput) {
 
     const hstRate = settings.hstRateBps / 10000
     const careNotes = booking.careNotesSnapshot as BookingDogSnapshot[]
-    const dogNames = careNotes.map((note) => note.dogName)
+
+    // Fetch the booking's current dogs to apply per-dog rate overrides.
+    const dogLinks = await tx
+      .select({ dogId: schema.bookingDogs.dogId })
+      .from(schema.bookingDogs)
+      .where(eq(schema.bookingDogs.bookingId, booking.id))
+    const dogRows = dogLinks.length
+      ? await tx
+          .select()
+          .from(schema.dogs)
+          .where(
+            inArray(
+              schema.dogs.id,
+              dogLinks.map((link) => link.dogId),
+            ),
+          )
+      : []
+    const priceDogs = dogRows.length
+      ? dogRows.map((dog) => ({
+          name: dog.name,
+          rateCents: dog.customRateCents ?? service.defaultRateCents,
+        }))
+      : careNotes.map((note) => ({
+          name: note.dogName,
+          rateCents: service.defaultRateCents,
+        }))
+    const dogNames = priceDogs.map((dog) => dog.name)
 
     const quote = calculatePriceQuote({
       service,
       startAt: booking.startAt,
       endAt: booking.endAt,
-      dogCount: Math.max(1, careNotes.length),
+      dogs: priceDogs,
       hstRate,
+      paymentMethod: booking.paymentMethod,
     })
     const totals = calculateInvoiceTotals(quote.lineItems, hstRate)
 
