@@ -67,7 +67,7 @@ function CalendarPage() {
     <div className="animate-fade-up space-y-5">
       <PageHeader
         title="Calendar"
-        description={`Boarding capacity ${snapshot.settings.boardingCapacity} dogs/night`}
+        description="Stays, check-ins, and check-outs at a glance"
       >
         <Button onClick={() => openNew()}>
           <Plus size={16} /> New booking
@@ -222,7 +222,6 @@ function MonthView({
   onEditBooking: (b: Booking) => void
 }) {
   const cells = monthGrid(cursor)
-  const capacity = snapshot.settings.boardingCapacity
 
   return (
     <div className="overflow-hidden rounded-xl border">
@@ -242,7 +241,6 @@ function MonthView({
           const inMonth = day.getMonth() === cursor.getMonth()
           const isToday = key === todayKey
           const { active, dogCount } = bookingsForDay(snapshot, key)
-          const over = dogCount > capacity
           const ordered = [...active].sort((a, b) =>
             a.startAt.localeCompare(b.startAt),
           )
@@ -268,15 +266,8 @@ function MonthView({
                   {day.getDate()}
                 </span>
                 {dogCount > 0 ? (
-                  <span
-                    className={cn(
-                      'rounded px-1 text-[10px] font-medium tabular',
-                      over
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'text-muted-foreground',
-                    )}
-                  >
-                    {dogCount}/{capacity}
+                  <span className="text-muted-foreground tabular text-[10px] font-medium">
+                    {dogCount} {dogCount === 1 ? 'dog' : 'dogs'}
                   </span>
                 ) : null}
               </div>
@@ -318,7 +309,6 @@ function WeekView({
   onNewBooking: (dayKey: string) => void
 }) {
   const days = weekDays(cursor)
-  const capacity = snapshot.settings.boardingCapacity
 
   return (
     <div className="grid gap-2 sm:grid-cols-7">
@@ -329,7 +319,6 @@ function WeekView({
           snapshot,
           key,
         )
-        const over = dogCount > capacity
         const ordered = [...active].sort((a, b) =>
           a.startAt.localeCompare(b.startAt),
         )
@@ -354,15 +343,8 @@ function WeekView({
                 </div>
               </div>
               {dogCount > 0 ? (
-                <span
-                  className={cn(
-                    'rounded px-1 text-[10px] font-medium tabular',
-                    over
-                      ? 'bg-destructive/10 text-destructive'
-                      : 'bg-muted text-muted-foreground',
-                  )}
-                >
-                  {dogCount}/{capacity}
+                <span className="bg-muted text-muted-foreground tabular rounded px-1 text-[10px] font-medium">
+                  {dogCount} {dogCount === 1 ? 'dog' : 'dogs'}
                 </span>
               ) : null}
             </div>

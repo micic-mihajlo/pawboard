@@ -41,8 +41,6 @@ export function DayDetailDialog({
     snapshot,
     dayKey,
   )
-  const capacity = snapshot.settings.boardingCapacity
-  const over = dogCount > capacity
 
   const Row = ({ booking }: { booking: Booking }) => (
     <button
@@ -104,7 +102,7 @@ export function DayDetailDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={longDate(dayKey)}
-      description={`${dogCount} of ${capacity} boarding ${dogCount === 1 ? 'slot' : 'slots'} in use${over ? ' · over capacity' : ''}`}
+      description={`${dogCount} ${dogCount === 1 ? 'dog' : 'dogs'} booked`}
       className="max-w-md"
       footer={
         <Button onClick={() => onNewBooking(dayKey)}>

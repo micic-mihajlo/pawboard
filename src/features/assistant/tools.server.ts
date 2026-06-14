@@ -72,6 +72,11 @@ export const toolDefs: ToolDef[] = [
         feedingInstructions: str('Feeding instructions'),
         medicationInstructions: str('Medication instructions'),
         careNotes: str('Care notes'),
+        customRateCents: {
+          type: 'number',
+          description:
+            "Optional custom per-night/day rate in cents that overrides the service base rate for this dog (e.g. 5000 = $50).",
+        },
       },
       ['ownerId', 'name'],
     ),
@@ -95,6 +100,12 @@ export const toolDefs: ToolDef[] = [
         status: {
           type: 'string',
           enum: ['inquiry', 'confirmed', 'checked_in', 'checked_out', 'cancelled'],
+        },
+        paymentMethod: {
+          type: 'string',
+          enum: ['cash', 'etransfer', 'card', 'other'],
+          description:
+            'cash is billed without HST; etransfer/card/other include HST. Default etransfer.',
         },
         internalNotes: str('Internal notes'),
       },
@@ -300,7 +311,11 @@ export function describeAction(
     case 'create_dog': {
       label = 'Add dog'
       const owner = ownerName(field('ownerId'))
-      description = [field('name'), owner ? `· owner ${owner}` : '']
+      const rate =
+        args.customRateCents != null
+          ? `· ${formatMoney(Number(args.customRateCents))}/unit`
+          : ''
+      description = [field('name'), owner ? `· owner ${owner}` : '', rate]
         .filter(Boolean)
         .join(' ')
       break
@@ -312,14 +327,27 @@ export function describeAction(
         (s) => s.id === field('serviceTypeId'),
       )
       const dates = `${shortDate(field('startAt'))} → ${shortDate(field('endAt'))}`
+      const priceDogs = asArray(args.dogIds).map((dogId) => {
+        const d = snapshot?.dogs.find((x) => x.id === dogId)
+        return {
+          name: d?.name ?? '',
+          rateCents: d?.customRateCents ?? service?.defaultRateCents ?? 0,
+        }
+      })
       const price =
         service && snapshot
           ? calculatePriceQuote({
               service,
               startAt: field('startAt'),
               endAt: field('endAt'),
-              dogCount: Math.max(1, asArray(args.dogIds).length),
+              dogs: priceDogs,
               hstRate: snapshot.settings.hstRate,
+              paymentMethod:
+                (field('paymentMethod') as
+                  | 'cash'
+                  | 'etransfer'
+                  | 'card'
+                  | 'other') || 'etransfer',
             })
           : null
       label = 'Create booking'

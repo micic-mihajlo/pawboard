@@ -41,6 +41,7 @@ function emptyDog(ownerId: string): DogInput {
     behaviourNotes: '',
     compatibilityNotes: '',
     careNotes: '',
+    customRateCents: null,
     active: true,
   }
 }
@@ -89,6 +90,7 @@ export function DogFormDialog({
               behaviourNotes: dog.behaviourNotes,
               compatibilityNotes: dog.compatibilityNotes,
               careNotes: dog.careNotes,
+              customRateCents: dog.customRateCents,
               active: dog.active,
             }
           : emptyDog(defaultOwnerId ?? owners[0]?.id ?? ''),
@@ -186,6 +188,35 @@ export function DogFormDialog({
               </option>
             ))}
           </Select>
+        </FormField>
+        <FormField
+          label="Custom rate"
+          hint="Overrides the service base rate for this dog"
+        >
+          <div className="relative">
+            <span className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm">
+              $
+            </span>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              className="pl-6"
+              placeholder="Base rate"
+              value={
+                values.customRateCents == null
+                  ? ''
+                  : (values.customRateCents / 100).toString()
+              }
+              onChange={(e) => {
+                const v = e.target.value.trim()
+                set(
+                  'customRateCents',
+                  v === '' ? null : Math.round(Number(v) * 100),
+                )
+              }}
+            />
+          </div>
         </FormField>
         <FormField label="Vet name">
           <Input value={values.vetName} onChange={(e) => set('vetName', e.target.value)} />

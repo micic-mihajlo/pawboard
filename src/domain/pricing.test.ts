@@ -65,16 +65,48 @@ describe('pricing and invoice math', () => {
     expect(calculateTax(999, 0.13)).toBe(130)
   })
 
-  it('returns cash and e-transfer quote display', () => {
+  it('shows cash without HST and e-transfer with HST', () => {
     const quote = calculatePriceQuote({
       service: daycare,
       startAt: '2026-06-13T13:00:00.000Z',
       endAt: '2026-06-13T21:00:00.000Z',
-      dogCount: 1,
+      dogs: [{ name: 'Milo', rateCents: daycare.defaultRateCents }],
       hstRate: 0.13,
     })
-    expect(quote.cashQuote).toBe('$42.94')
+    expect(quote.cashQuote).toBe('$38.00')
     expect(quote.etransferQuote).toBe('$42.94')
+  })
+
+  it('omits HST for cash payments', () => {
+    const quote = calculatePriceQuote({
+      service: daycare,
+      startAt: '2026-06-13T13:00:00.000Z',
+      endAt: '2026-06-13T21:00:00.000Z',
+      dogs: [{ name: 'Milo', rateCents: daycare.defaultRateCents }],
+      hstRate: 0.13,
+      paymentMethod: 'cash',
+    })
+    expect(quote.subtotalCents).toBe(3800)
+    expect(quote.taxCents).toBe(0)
+    expect(quote.totalCents).toBe(3800)
+  })
+
+  it('applies per-dog rate overrides', () => {
+    const quote = calculatePriceQuote({
+      service: boarding,
+      startAt: '2026-06-12T19:00:00.000Z',
+      endAt: '2026-06-15T14:00:00.000Z', // 3 nights
+      dogs: [
+        { name: 'Luna', rateCents: 6500 },
+        { name: 'Tank', rateCents: 5000 }, // discounted
+      ],
+      hstRate: 0.13,
+    })
+    // (6500 + 5000) * 3 = 34500 subtotal
+    expect(quote.subtotalCents).toBe(34500)
+    expect(quote.taxCents).toBe(4485)
+    expect(quote.totalCents).toBe(38985)
+    expect(quote.lineItems).toHaveLength(2)
   })
 
   it('calculates invoice totals from taxable line items', () => {
@@ -120,7 +152,10 @@ describe('pricing and invoice math', () => {
       service: boarding,
       startAt: '2026-06-12T19:00:00.000Z',
       endAt: '2026-06-15T14:00:00.000Z',
-      dogCount: 2,
+      dogs: [
+        { name: 'A', rateCents: boarding.defaultRateCents },
+        { name: 'B', rateCents: boarding.defaultRateCents },
+      ],
       hstRate: 0.13,
     })
     expect(quote.subtotalCents).toBe(39000)

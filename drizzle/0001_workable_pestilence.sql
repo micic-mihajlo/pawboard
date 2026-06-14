@@ -1,0 +1,1 @@
+ALTER TABLE "dogs" ADD COLUMN "custom_rate_cents" integer;

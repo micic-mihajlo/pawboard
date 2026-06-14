@@ -129,6 +129,7 @@ const dogs = [
     behaviourNotes: 'Gentle; excited at first greeting.',
     compatibilityNotes: 'Good with medium and large dogs.',
     careNotes: 'Likes a bedtime chew and quiet room.',
+    customRateCents: null,
     active: true,
     createdAt: now,
     updatedAt: now,
@@ -151,6 +152,7 @@ const dogs = [
     behaviourNotes: 'Protective around food bowls.',
     compatibilityNotes: 'Best with calm dogs.',
     careNotes: 'Use slow feeder.',
+    customRateCents: null,
     active: true,
     createdAt: now,
     updatedAt: now,
@@ -173,6 +175,7 @@ const dogs = [
     behaviourNotes: 'Shy for first hour.',
     compatibilityNotes: 'Good with small dogs.',
     careNotes: 'Short walks; avoid muddy parks after grooming.',
+    customRateCents: null,
     active: true,
     createdAt: now,
     updatedAt: now,
@@ -195,6 +198,7 @@ const dogs = [
     behaviourNotes: 'Door dasher. Use leash before opening gates.',
     compatibilityNotes: 'Good in groups, noisy when excited.',
     careNotes: 'Loves scent games.',
+    customRateCents: null,
     active: true,
     createdAt: now,
     updatedAt: now,
@@ -217,6 +221,7 @@ const dogs = [
     behaviourNotes: 'Low stamina in heat.',
     compatibilityNotes: 'Prefers people over dog play.',
     careNotes: 'Keep cool; no long midday walks.',
+    customRateCents: 5000,
     active: true,
     createdAt: now,
     updatedAt: now,
@@ -248,8 +253,12 @@ function quote(
     service,
     startAt,
     endAt,
-    dogCount,
+    dogs: Array.from({ length: dogCount }, () => ({
+      name: '',
+      rateCents: service.defaultRateCents,
+    })),
     hstRate: settings.hstRate,
+    paymentMethod: 'etransfer',
   })
 }
 

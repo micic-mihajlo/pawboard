@@ -77,8 +77,8 @@ describe('bookingsForDay', () => {
     expect(result.active.some((b) => b.id === 'cancelled')).toBe(false)
   })
 
-  it('counts only confirmed/checked-in dogs toward occupancy', () => {
-    // staying (2 confirmed) + checkin (1 checked_in); checkout is checked_out.
-    expect(result.dogCount).toBe(3)
+  it('counts present dogs (confirmed/checked-in/checked-out), not inquiries', () => {
+    // staying (2 confirmed) + checkin (1 checked_in) + checkout (1 checked_out).
+    expect(result.dogCount).toBe(4)
   })
 })

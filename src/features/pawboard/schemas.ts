@@ -52,6 +52,7 @@ export const dogInputSchema = z.object({
   behaviourNotes: z.string().trim().default(''),
   compatibilityNotes: z.string().trim().default(''),
   careNotes: z.string().trim().default(''),
+  customRateCents: z.number().int().min(0).nullable().default(null),
   active: z.boolean().default(true),
 })
 export type DogInput = z.infer<typeof dogInputSchema>

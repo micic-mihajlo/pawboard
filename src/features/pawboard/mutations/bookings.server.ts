@@ -25,8 +25,12 @@ async function priceAndSnapshot(db: Database, input: BookingInput) {
     service,
     startAt: input.startAt,
     endAt: input.endAt,
-    dogCount: dogs.length,
+    dogs: dogs.map((dog) => ({
+      name: dog.name,
+      rateCents: dog.customRateCents ?? service.defaultRateCents,
+    })),
     hstRate,
+    paymentMethod: input.paymentMethod,
   })
 
   const careNotesSnapshot = dogs.map((dog) => ({

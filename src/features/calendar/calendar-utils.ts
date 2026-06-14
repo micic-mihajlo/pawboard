@@ -46,8 +46,8 @@ export function weekDays(date: Date): Date[] {
 
 export const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-/** Statuses that occupy a kennel slot for capacity purposes. */
-const OCCUPYING: BookingStatus[] = ['confirmed', 'checked_in']
+/** Statuses counted as dogs actually present on a day (excludes inquiries). */
+const PRESENT: BookingStatus[] = ['confirmed', 'checked_in', 'checked_out']
 
 export interface DayBookings {
   active: Booking[]
@@ -76,7 +76,7 @@ export function bookingsForDay(
     (b) => isoKey(b.startAt) < dayKey && isoKey(b.endAt) > dayKey,
   )
   const dogCount = active
-    .filter((b) => OCCUPYING.includes(b.status))
+    .filter((b) => PRESENT.includes(b.status))
     .reduce((sum, b) => sum + b.dogIds.length, 0)
   return { active, checkIns, checkOuts, staying, dogCount }
 }

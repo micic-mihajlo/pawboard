@@ -63,6 +63,8 @@ export interface Dog {
   behaviourNotes: string
   compatibilityNotes: string
   careNotes: string
+  /** Optional per-unit rate override in cents. Null = use the service base rate. */
+  customRateCents: number | null
   active: boolean
   createdAt: string
   updatedAt: string
