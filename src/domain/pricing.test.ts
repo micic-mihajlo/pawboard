@@ -8,6 +8,7 @@ import {
   calculatePaidCents,
   calculatePriceQuote,
   calculateTax,
+  dogRateForService,
   generateInvoiceNumber,
 } from './pricing'
 
@@ -89,6 +90,19 @@ describe('pricing and invoice math', () => {
     expect(quote.subtotalCents).toBe(3800)
     expect(quote.taxCents).toBe(0)
     expect(quote.totalCents).toBe(3800)
+  })
+
+  it('picks the per-service rate override (boarding vs daycare)', () => {
+    const dog = { customBoardingRateCents: 5000, customDaycareRateCents: 3000 }
+    expect(dogRateForService(dog, boarding)).toBe(5000)
+    expect(dogRateForService(dog, daycare)).toBe(3000)
+    // Falls back to the service base rate when no override for that unit.
+    expect(
+      dogRateForService(
+        { customBoardingRateCents: null, customDaycareRateCents: 3000 },
+        boarding,
+      ),
+    ).toBe(boarding.defaultRateCents)
   })
 
   it('applies per-dog rate overrides', () => {

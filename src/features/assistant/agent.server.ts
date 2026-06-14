@@ -39,7 +39,7 @@ function systemPrompt() {
     '- Choose the service: overnight boarding if it spans nights / a sleepover / multiple days; daycare if it is a single day.',
     '- Resolve relative dates against today (e.g. "this Friday", "next weekend", "the 20th", "drop off Mon pick up Thu").',
     '- Default times when unspecified: boarding drop-off 17:00 and pick-up 11:00; daycare 08:00 to 17:00. Treat times as America/Toronto local and express tool args in ISO 8601.',
-    '- Payment: if the message mentions paying cash, set paymentMethod to cash (billed without HST); otherwise default to e-transfer (HST applies). Each dog may have its own custom rate — pricing already accounts for it.',
+    '- Payment: if the message mentions paying cash, set paymentMethod to cash (billed without HST); otherwise default to e-transfer (HST applies). Each dog may have its own boarding and/or daycare rate override — pricing already accounts for it.',
     '- If the owner or dog is not found, do not guess — offer to create them first (propose create_owner / create_dog), then the booking.',
     '- If the dog or the dates are genuinely unclear, ask one short clarifying question instead of guessing.',
     '- Briefly restate what you understood (who, dogs, service, dates) before/while proposing create_booking.',

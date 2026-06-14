@@ -9,7 +9,7 @@ import { Money } from '../../../components/money'
 import { useServerMutation } from '../../../hooks/use-server-mutation'
 import { createBookingFn, updateBookingFn } from '../functions'
 import { bookingInputSchema } from '../schemas'
-import { calculatePriceQuote } from '../../../domain/pricing'
+import { calculatePriceQuote, dogRateForService } from '../../../domain/pricing'
 import { toDateTimeLocalValue, fromInputValue } from '../../../lib/format'
 import type {
   Booking,
@@ -139,7 +139,7 @@ export function BookingFormDialog({
           endAt: values.endAt,
           dogs: selectedDogs.map((dog) => ({
             name: dog.name,
-            rateCents: dog.customRateCents ?? service.defaultRateCents,
+            rateCents: dogRateForService(dog, service),
           })),
           hstRate,
           paymentMethod: values.paymentMethod,

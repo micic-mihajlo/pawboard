@@ -103,8 +103,9 @@ export const dogs = pgTable('dogs', {
   behaviourNotes: text('behaviour_notes').notNull().default(''),
   compatibilityNotes: text('compatibility_notes').notNull().default(''),
   careNotes: text('care_notes').notNull().default(''),
-  // Optional per-unit rate override (cents). Null = use the service base rate.
-  customRateCents: integer('custom_rate_cents'),
+  // Optional per-service rate overrides (cents). Null = use service base rate.
+  customBoardingRateCents: integer('custom_boarding_rate_cents'),
+  customDaycareRateCents: integer('custom_daycare_rate_cents'),
   active: boolean('active').notNull().default(true),
   ...timestamps,
 })

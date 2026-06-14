@@ -19,20 +19,37 @@ export function DropdownMenu({
   align = 'end',
 }: DropdownMenuProps) {
   const [open, setOpen] = React.useState(false)
-  const [coords, setCoords] = React.useState({ top: 0, left: 0, width: 0 })
+  const [coords, setCoords] = React.useState<{ top: number; left: number } | null>(
+    null,
+  )
   const triggerRef = React.useRef<HTMLDivElement>(null)
   const menuRef = React.useRef<HTMLDivElement>(null)
 
-  const reposition = React.useCallback(() => {
-    const rect = triggerRef.current?.getBoundingClientRect()
-    if (rect) {
-      setCoords({ top: rect.bottom + 6, left: rect.left, width: rect.width })
-    }
-  }, [])
+  // Position the menu after it mounts, flipping above the trigger and clamping
+  // to the viewport so it never opens off-screen on low rows.
+  React.useLayoutEffect(() => {
+    if (!open) return
+    const t = triggerRef.current?.getBoundingClientRect()
+    const m = menuRef.current?.getBoundingClientRect()
+    if (!t) return
+    const margin = 8
+    const menuW = m?.width ?? 176
+    const menuH = m?.height ?? 0
+    const spaceBelow = window.innerHeight - t.bottom
+    const top =
+      spaceBelow < menuH + margin && t.top > spaceBelow
+        ? Math.max(margin, t.top - menuH - 6)
+        : Math.min(t.bottom + 6, window.innerHeight - menuH - margin)
+    const rawLeft = align === 'end' ? t.right - menuW : t.left
+    const left = Math.max(
+      margin,
+      Math.min(rawLeft, window.innerWidth - menuW - margin),
+    )
+    setCoords({ top, left })
+  }, [open, align])
 
   React.useEffect(() => {
     if (!open) return
-    reposition()
     const onScroll = () => setOpen(false)
     const onResize = () => setOpen(false)
     const onClick = (event: MouseEvent) => {
@@ -56,14 +73,17 @@ export function DropdownMenu({
       document.removeEventListener('mousedown', onClick)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open, reposition])
+  }, [open])
 
   return (
     <>
       <div
         ref={triggerRef}
         className="inline-flex"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          setCoords(null)
+          setOpen((value) => !value)
+        }}
       >
         {trigger}
       </div>
@@ -73,12 +93,11 @@ export function DropdownMenu({
               ref={menuRef}
               style={{
                 position: 'fixed',
-                top: coords.top,
-                ...(align === 'end'
-                  ? { left: coords.left + coords.width, transform: 'translateX(-100%)' }
-                  : { left: coords.left }),
+                top: coords?.top ?? 0,
+                left: coords?.left ?? 0,
+                visibility: coords ? 'visible' : 'hidden',
               }}
-              className="bg-popover text-popover-foreground animate-fade-up z-50 min-w-44 overflow-hidden rounded-lg border p-1 shadow-lg"
+              className="bg-popover text-popover-foreground animate-fade-up z-50 max-h-[70vh] min-w-44 overflow-y-auto rounded-lg border p-1 shadow-lg"
             >
               <MenuContext.Provider value={{ close: () => setOpen(false) }}>
                 {children}
