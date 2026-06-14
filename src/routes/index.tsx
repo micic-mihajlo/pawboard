@@ -5,18 +5,37 @@ import {
   ClipboardList,
   Download,
   FileText,
-  Heart,
   Home,
   LockKeyhole,
   LogOut,
   PawPrint,
-  Plus,
   Search,
   Settings,
   ShieldCheck,
   Users,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card'
+import { Input } from '../components/ui/input'
+import { Select } from '../components/ui/select'
+import { Separator } from '../components/ui/separator'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table'
 import type { Booking, Invoice, PawboardSnapshot } from '../domain/pawboard'
 import { calculatePriceQuote, formatMoney } from '../domain/pricing'
 import { getAuthState, signIn, signOut } from '../features/auth/functions'
@@ -30,6 +49,7 @@ import {
   todaysCheckOuts,
   upcomingBookings,
 } from '../features/pawboard/selectors'
+import { cn } from '../lib/utils'
 
 export const Route = createFileRoute('/')({
   loader: async () => ({
@@ -39,82 +59,9 @@ export const Route = createFileRoute('/')({
   component: PawboardApp,
 })
 
-function LoginScreen({ demoMode }: { demoMode: boolean }) {
-  const router = useRouter()
-  const login = useServerFn(signIn)
-  const [accessCode, setAccessCode] = useState(demoMode ? 'demo' : '')
-  const [error, setError] = useState('')
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    const result = await login({ data: { accessCode } })
-    if (!result.authenticated) {
-      setError(result.error)
-      return
-    }
-    await router.invalidate()
-  }
-
-  return (
-    <main className="grid min-h-screen place-items-center bg-gradient-to-br from-stone-950 via-stone-900 to-amber-950 px-4 text-white">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur"
-      >
-        <div className="mb-6 inline-flex rounded-2xl bg-amber-200 p-3 text-amber-950">
-          <LockKeyhole />
-        </div>
-        <h1 className="text-4xl font-black tracking-tight">
-          PawBoard operator sign-in
-        </h1>
-        <p className="mt-3 text-stone-200">
-          Use the private operator access code to open the boarding dashboard.
-          Demo environments accept <strong>demo</strong>.
-        </p>
-        <label
-          className="mt-6 block text-sm font-bold text-amber-100"
-          htmlFor="access-code"
-        >
-          Access code
-        </label>
-        <input
-          id="access-code"
-          type="password"
-          value={accessCode}
-          onChange={(event) => setAccessCode(event.target.value)}
-          className="mt-2 w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-stone-950 outline-none ring-amber-300 focus:ring-4"
-        />
-        {error ? (
-          <p className="mt-3 rounded-2xl bg-red-100 px-4 py-3 text-sm font-bold text-red-900">
-            {error}
-          </p>
-        ) : null}
-        <button className="mt-6 w-full rounded-2xl bg-amber-300 px-4 py-3 font-black text-amber-950 hover:bg-amber-200">
-          Sign in
-        </button>
-      </form>
-    </main>
-  )
-}
-
-function SignOutButton() {
-  const router = useRouter()
-  const logout = useServerFn(signOut)
-  return (
-    <button
-      onClick={async () => {
-        await logout()
-        await router.invalidate()
-      }}
-      className="no-print mb-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-stone-600 shadow-sm hover:bg-amber-50"
-    >
-      <LogOut size={16} /> Sign out
-    </button>
-  )
-}
-
 const nav = [
   ['dashboard', 'Dashboard', Home],
-  ['owners', 'Owners & dogs', Users],
+  ['owners', 'Owners & Dogs', Users],
   ['bookings', 'Bookings', ClipboardList],
   ['calendar', 'Calendar', CalendarDays],
   ['invoices', 'Invoices', FileText],
@@ -125,83 +72,133 @@ const nav = [
 function PawboardApp() {
   const { auth, snapshot } = Route.useLoaderData()
   const [query, setQuery] = useState('')
-  const filtered = useMemo(() => search(snapshot, query), [snapshot, query])
+  const results = useMemo(() => search(snapshot, query), [snapshot, query])
 
   if (!auth.authenticated) return <LoginScreen demoMode={auth.demoMode} />
 
   return (
-    <div className="min-h-screen">
-      <aside className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 px-2 py-2 shadow-2xl backdrop-blur lg:inset-y-0 lg:left-0 lg:right-auto lg:w-72 lg:border-r lg:border-t-0 lg:px-6 lg:py-8">
-        <div className="mb-8 hidden lg:block">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-amber-200 p-3 text-amber-900">
-              <PawPrint />
-            </div>
-            <div>
-              <p className="text-xl font-black tracking-tight">PawBoard</p>
-              <p className="text-sm text-stone-500">Private boarding ops</p>
-            </div>
+    <div className="flex min-h-screen bg-muted/40">
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 border-r bg-background md:flex md:flex-col">
+        <div className="flex h-16 items-center gap-2 border-b px-6">
+          <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <PawPrint size={18} />
+          </div>
+          <div>
+            <div className="text-sm font-semibold">PawBoard</div>
+            <div className="text-xs text-muted-foreground">Operations</div>
           </div>
         </div>
-        <nav className="grid grid-cols-7 gap-1 lg:block lg:space-y-2">
+        <nav className="flex-1 space-y-1 p-3">
           {nav.map(([id, label, Icon]) => (
             <a
               key={id}
               href={`#${id}`}
-              className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs font-semibold text-stone-600 hover:bg-amber-50 hover:text-amber-900 lg:flex-row lg:px-4 lg:py-3 lg:text-sm"
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             >
-              <Icon size={18} />
-              <span className="hidden sm:inline">{label}</span>
+              <Icon size={16} />
+              {label}
             </a>
           ))}
         </nav>
       </aside>
 
-      <main className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 lg:ml-72 lg:px-10 lg:pb-12">
-        <SignOutButton />
-        <header className="mb-8 rounded-[2rem] bg-gradient-to-br from-stone-900 via-stone-800 to-amber-900 p-6 text-white shadow-xl lg:p-8">
-          <div className="grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-center">
-            <div>
-              <p className="mb-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-amber-100">
-                Today · {snapshot.settings.timezone}
-              </p>
-              <h1 className="text-4xl font-black tracking-tight lg:text-6xl">
-                Calm dog boarding control.
-              </h1>
-              <p className="mt-4 max-w-2xl text-lg text-stone-200">
-                Owners, dogs, bookings, invoices, payments, exports, and audit
-                history in one protected app shell backed by the database
-                schema.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/10 p-4 backdrop-blur">
-              <label
-                className="mb-2 flex items-center gap-2 text-sm font-semibold text-amber-100"
-                htmlFor="global-search"
-              >
-                <Search size={16} /> Search customers, dogs, bookings, invoices
-              </label>
-              <input
-                id="global-search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Try Luna, Sarah, PB-00102..."
-                className="w-full rounded-2xl border border-white/20 bg-white px-4 py-3 text-stone-900 outline-none ring-amber-300 focus:ring-4"
-              />
-              {query ? <SearchResults results={filtered} /> : null}
-            </div>
+      <div className="flex min-w-0 flex-1 flex-col md:pl-64">
+        <header className="no-print sticky top-0 z-20 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+          <div className="flex items-center gap-2 md:hidden">
+            <PawPrint size={18} />
+            <span className="font-semibold">PawBoard</span>
           </div>
+          <div className="relative ml-auto w-full max-w-sm">
+            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search..."
+              className="pl-9"
+            />
+            {query ? <SearchResults results={results} /> : null}
+          </div>
+          <SignOutButton />
         </header>
 
-        <Dashboard snapshot={snapshot} />
-        <OwnersDogs snapshot={snapshot} />
-        <Bookings snapshot={snapshot} />
-        <Calendar snapshot={snapshot} />
-        <Invoices snapshot={snapshot} />
-        <Exports snapshot={snapshot} />
-        <SettingsPanel snapshot={snapshot} />
-      </main>
+        <main className="flex-1 space-y-8 p-4 md:p-6 lg:p-8">
+          <Dashboard snapshot={snapshot} />
+          <OwnersDogs snapshot={snapshot} />
+          <Bookings snapshot={snapshot} />
+          <Calendar snapshot={snapshot} />
+          <Invoices snapshot={snapshot} />
+          <Exports snapshot={snapshot} />
+          <SettingsPanel snapshot={snapshot} />
+        </main>
+      </div>
     </div>
+  )
+}
+
+function LoginScreen({ demoMode }: { demoMode: boolean }) {
+  const router = useRouter()
+  const login = useServerFn(signIn)
+  const [accessCode, setAccessCode] = useState(demoMode ? 'demo' : '')
+  const [error, setError] = useState('')
+  const submit = async (event: FormEvent) => {
+    event.preventDefault()
+    const result = await login({ data: { accessCode } })
+    if (!result.authenticated) {
+      setError(result.error)
+      return
+    }
+    await router.invalidate()
+  }
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-muted/40 p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <div className="mb-2 flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <LockKeyhole size={18} />
+          </div>
+          <CardTitle>PawBoard</CardTitle>
+          <CardDescription>
+            Sign in to the private operator dashboard.
+            {demoMode ? ' Use demo for local preview.' : ''}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={submit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="access-code">
+                Access code
+              </label>
+              <Input
+                id="access-code"
+                type="password"
+                value={accessCode}
+                onChange={(event) => setAccessCode(event.target.value)}
+              />
+            </div>
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            <Button className="w-full">Sign in</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </main>
+  )
+}
+
+function SignOutButton() {
+  const router = useRouter()
+  const logout = useServerFn(signOut)
+  return (
+    <Button
+      variant="outline"
+      onClick={async () => {
+        await logout()
+        await router.invalidate()
+      }}
+    >
+      <LogOut size={16} />
+      <span className="hidden sm:inline">Sign out</span>
+    </Button>
   )
 }
 
@@ -216,21 +213,19 @@ function Dashboard({ snapshot }: { snapshot: PawboardSnapshot }) {
   const unpaid = snapshot.invoices.filter((invoice) => invoice.balanceCents > 0)
 
   return (
-    <section id="dashboard" className="scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<Home />}
-        eyebrow="Daily dashboard"
-        title="Open the app and know what is happening."
-      />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <Section
+      id="dashboard"
+      title="Dashboard"
+      description={`Today · ${snapshot.settings.timezone}`}
+    >
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Metric
           label="Monthly revenue"
           value={formatMoney(snapshot.metrics.monthlyRevenueCents)}
         />
         <Metric
-          label="Unpaid invoices"
+          label="Unpaid balance"
           value={formatMoney(snapshot.metrics.unpaidInvoiceTotalCents)}
-          tone="warn"
         />
         <Metric
           label="Bookings this month"
@@ -240,158 +235,172 @@ function Dashboard({ snapshot }: { snapshot: PawboardSnapshot }) {
           label="Dogs boarding"
           value={snapshot.metrics.dogsCurrentlyBoarding.toString()}
         />
-        <Metric
-          label="Upcoming this week"
-          value={snapshot.metrics.upcomingBookingsThisWeek.toString()}
-        />
       </div>
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Board
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <BookingCard
           title="Currently staying"
-          empty="No dogs are currently checked in."
           items={active}
           snapshot={snapshot}
         />
-        <Board
+        <BookingCard
           title="Today’s check-ins"
-          empty="No check-ins today."
           items={checkIns}
           snapshot={snapshot}
         />
-        <Board
+        <BookingCard
           title="Today’s check-outs"
-          empty="No check-outs today."
           items={checkOuts}
           snapshot={snapshot}
         />
-        <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 font-black">Unpaid invoices</h3>
-          {unpaid.length ? (
-            <div className="space-y-3">
-              {unpaid.map((invoice) => (
-                <InvoiceRow key={invoice.id} invoice={invoice} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState text="No unpaid invoices. A rare and beautiful creature." />
-          )}
-        </div>
       </div>
-      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
-        <h3 className="mb-4 font-black">Quick actions</h3>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {['New booking', 'New owner', 'New dog', 'New invoice'].map(
-            (action) => (
-              <a
-                key={action}
-                href="#bookings"
-                className="flex items-center justify-center gap-2 rounded-2xl bg-stone-900 px-4 py-3 font-bold text-white shadow hover:bg-amber-900"
-              >
-                <Plus size={18} /> {action}
-              </a>
-            ),
-          )}
-        </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <BookingCard
+          title="Upcoming bookings"
+          items={upcoming}
+          snapshot={snapshot}
+        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Unpaid invoices</CardTitle>
+            <CardDescription>Open balances</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {unpaid.length ? (
+              unpaid.map((invoice) => (
+                <InvoiceMini key={invoice.id} invoice={invoice} />
+              ))
+            ) : (
+              <EmptyState>No unpaid invoices.</EmptyState>
+            )}
+          </CardContent>
+        </Card>
       </div>
-      <Board
-        title="Upcoming bookings"
-        empty="No upcoming bookings."
-        items={upcoming}
-        snapshot={snapshot}
-      />
-    </section>
+    </Section>
   )
 }
 
 function OwnersDogs({ snapshot }: { snapshot: PawboardSnapshot }) {
   return (
-    <section id="owners" className="mt-12 scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<Users />}
-        eyebrow="Contact book"
-        title="Owners and dogs stay linked."
-      />
-      <div className="grid gap-4 lg:grid-cols-3">
-        {snapshot.owners.map((owner) => {
-          const dogs = snapshot.dogs.filter((dog) => dog.ownerId === owner.id)
-          return (
-            <article
-              key={owner.id}
-              className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm"
-            >
+    <Section
+      id="owners"
+      title="Owners & Dogs"
+      description="Owner contact details and dog care notes."
+    >
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Owner</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>Dogs</TableHead>
+              <TableHead>Emergency contact</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {snapshot.owners.map((owner) => {
+              const ownerDogs = snapshot.dogs.filter(
+                (dog) => dog.ownerId === owner.id,
+              )
+              return (
+                <TableRow key={owner.id}>
+                  <TableCell className="font-medium">
+                    {owner.firstName} {owner.lastName}
+                  </TableCell>
+                  <TableCell>
+                    <div>{owner.phone}</div>
+                    <div className="text-muted-foreground">{owner.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    {ownerDogs.map((dog) => dog.name).join(', ')}
+                  </TableCell>
+                  <TableCell>
+                    {owner.emergencyContactName} · {owner.emergencyContactPhone}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={owner.active ? 'success' : 'muted'}>
+                      {owner.active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </Card>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {snapshot.dogs.map((dog) => (
+          <Card key={dog.id}>
+            <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-black">
-                    {owner.firstName} {owner.lastName}
-                  </h3>
-                  <p className="text-sm text-stone-500">
-                    {owner.phone} · {owner.email}
-                  </p>
+                  <CardTitle>{dog.name}</CardTitle>
+                  <CardDescription>
+                    {dog.breed} · {ownerName(snapshot, dog.ownerId)}
+                  </CardDescription>
                 </div>
-                <Status active={owner.active} />
+                <Badge variant="outline" className="capitalize">
+                  {dog.size}
+                </Badge>
               </div>
-              <p className="mt-3 text-sm text-stone-600">
-                Emergency: {owner.emergencyContactName} ·{' '}
-                {owner.emergencyContactPhone}
-              </p>
-              <div className="mt-4 space-y-3">
-                {dogs.map((dog) => (
-                  <div key={dog.id} className="rounded-2xl bg-stone-50 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-black">
-                        <PawPrint className="mr-2 inline" size={16} />
-                        {dog.name}
-                      </p>
-                      <span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-stone-500">
-                        {dog.size}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-stone-600">
-                      {dog.breed} · {dog.vaccinationNotes}
-                    </p>
-                    <p className="mt-2 text-sm text-stone-700">
-                      {dog.careNotes}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </article>
-          )
-        })}
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <KeyValue label="Feeding" value={dog.feedingInstructions} />
+              <KeyValue label="Medication" value={dog.medicationInstructions} />
+              <KeyValue label="Care notes" value={dog.careNotes} />
+            </CardContent>
+          </Card>
+        ))}
       </div>
-    </section>
+    </Section>
   )
 }
 
 function Bookings({ snapshot }: { snapshot: PawboardSnapshot }) {
   return (
-    <section id="bookings" className="mt-12 scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<ClipboardList />}
-        eyebrow="Bookings"
-        title="Create, price, check in, check out, or cancel stays."
-      />
+    <Section
+      id="bookings"
+      title="Bookings"
+      description="Create, price, check in, check out, and cancel stays."
+    >
       <BookingComposer snapshot={snapshot} />
-      <div className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
-        <div className="grid grid-cols-6 gap-3 border-b border-stone-100 bg-stone-50 px-5 py-3 text-xs font-black uppercase tracking-wide text-stone-500">
-          <span className="col-span-2">Booking</span>
-          <span>Service</span>
-          <span>Dates</span>
-          <span>Status</span>
-          <span>Actions</span>
-        </div>
-        {snapshot.bookings.map((booking) => (
-          <BookingRow key={booking.id} snapshot={snapshot} booking={booking} />
-        ))}
-      </div>
-    </section>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Dogs</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Service</TableHead>
+              <TableHead>Dates</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {snapshot.bookings.map((booking) => (
+              <BookingRow
+                key={booking.id}
+                snapshot={snapshot}
+                booking={booking}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </Section>
   )
 }
 
 function BookingComposer({ snapshot }: { snapshot: PawboardSnapshot }) {
   const [ownerId, setOwnerId] = useState(snapshot.owners[0]?.id ?? '')
+  const [serviceId, setServiceId] = useState(snapshot.serviceTypes[0]?.id ?? '')
   const ownerDogs = snapshot.dogs.filter((dog) => dog.ownerId === ownerId)
-  const service = snapshot.serviceTypes[0]
+  const service =
+    snapshot.serviceTypes.find((item) => item.id === serviceId) ??
+    snapshot.serviceTypes[0]
   const quote = calculatePriceQuote({
     service,
     startAt: '2026-06-20T19:00:00.000Z',
@@ -401,41 +410,52 @@ function BookingComposer({ snapshot }: { snapshot: PawboardSnapshot }) {
   })
 
   return (
-    <div className="grid gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 lg:grid-cols-4">
-      <label className="space-y-2 text-sm font-bold">
-        Owner
-        <select
-          value={ownerId}
-          onChange={(event) => setOwnerId(event.target.value)}
-          className="w-full rounded-2xl border border-stone-200 bg-white px-3 py-3"
-        >
-          {snapshot.owners.map((owner) => (
-            <option key={owner.id} value={owner.id}>
-              {owner.firstName} {owner.lastName}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className="rounded-2xl bg-white p-4">
-        <p className="text-sm font-bold text-stone-500">Filtered dogs</p>
-        <p className="mt-1 font-black">
-          {ownerDogs.map((dog) => dog.name).join(', ') || 'No active dogs'}
-        </p>
-      </div>
-      <div className="rounded-2xl bg-white p-4">
-        <p className="text-sm font-bold text-stone-500">Pricing preview</p>
-        <p className="mt-1 font-black">
-          {quote.quantity} {quote.unitLabel}s · {quote.cashQuote}
-        </p>
-      </div>
-      <div className="rounded-2xl bg-stone-900 p-4 text-white">
-        <p className="text-sm font-bold text-amber-100">Invoice-ready</p>
-        <p className="mt-1 text-sm">
-          Care notes snapshot, payment method, and tax are captured before
-          saving.
-        </p>
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>New booking</CardTitle>
+        <CardDescription>
+          Draft booking form with owner-filtered dogs and price preview.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 md:grid-cols-4">
+        <Field label="Owner">
+          <Select
+            value={ownerId}
+            onChange={(event) => setOwnerId(event.target.value)}
+          >
+            {snapshot.owners.map((owner) => (
+              <option key={owner.id} value={owner.id}>
+                {owner.firstName} {owner.lastName}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Service">
+          <Select
+            value={serviceId}
+            onChange={(event) => setServiceId(event.target.value)}
+          >
+            {snapshot.serviceTypes.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <div className="rounded-md border p-3 text-sm">
+          <div className="text-muted-foreground">Dogs</div>
+          <div className="font-medium">
+            {ownerDogs.map((dog) => dog.name).join(', ')}
+          </div>
+        </div>
+        <div className="rounded-md border p-3 text-sm">
+          <div className="text-muted-foreground">Preview</div>
+          <div className="font-medium">
+            {quote.quantity} {quote.unitLabel}s · {quote.cashQuote}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -452,40 +472,47 @@ function BookingRow({
     await updateStatus({ data: { id: booking.id, status } })
     await router.invalidate()
   }
+
   return (
-    <div className="grid grid-cols-6 gap-3 border-b border-stone-100 px-5 py-4 text-sm last:border-0">
-      <div className="col-span-2">
-        <p className="font-black">{dogNames(snapshot, booking.dogIds)}</p>
-        <p className="text-stone-500">{ownerName(snapshot, booking.ownerId)}</p>
-      </div>
-      <p>{serviceName(snapshot, booking.serviceTypeId)}</p>
-      <p>
+    <TableRow>
+      <TableCell className="font-medium">
+        {dogNames(snapshot, booking.dogIds)}
+      </TableCell>
+      <TableCell>{ownerName(snapshot, booking.ownerId)}</TableCell>
+      <TableCell>{serviceName(snapshot, booking.serviceTypeId)}</TableCell>
+      <TableCell>
         {shortDate(booking.startAt)} → {shortDate(booking.endAt)}
-      </p>
-      <p>
-        <Badge>{booking.status.replace('_', ' ')}</Badge>
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => onStatus('checked_in')}
-          className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800"
-        >
-          Check in
-        </button>
-        <button
-          onClick={() => onStatus('checked_out')}
-          className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800"
-        >
-          Check out
-        </button>
-        <button
-          onClick={() => onStatus('cancelled')}
-          className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-stone-700"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
+      </TableCell>
+      <TableCell>{formatMoney(booking.quotedTotalCents)}</TableCell>
+      <TableCell>
+        <StatusBadge status={booking.status} />
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onStatus('checked_in')}
+          >
+            Check in
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onStatus('checked_out')}
+          >
+            Check out
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onStatus('cancelled')}
+          >
+            Cancel
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
 
@@ -495,348 +522,418 @@ function Calendar({ snapshot }: { snapshot: PawboardSnapshot }) {
     date.setDate(date.getDate() + index)
     return date
   })
+
   return (
-    <section id="calendar" className="mt-12 scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<CalendarDays />}
-        eyebrow="Calendar"
-        title="Visible range only, with capacity warnings."
-      />
+    <Section
+      id="calendar"
+      title="Calendar"
+      description="Two-week booking view with capacity counts."
+    >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-7">
         {days.map((day) => {
           const key = day.toISOString().slice(0, 10)
-          const bookings = snapshot.bookings.filter(
+          const dayBookings = snapshot.bookings.filter(
             (booking) =>
               booking.startAt.slice(0, 10) <= key &&
               booking.endAt.slice(0, 10) >= key &&
               booking.status !== 'cancelled',
           )
-          const dogs = bookings.reduce(
+          const dogCount = dayBookings.reduce(
             (sum, booking) => sum + booking.dogIds.length,
             0,
           )
           return (
-            <div
-              key={key}
-              className="min-h-40 rounded-3xl border border-stone-200 bg-white p-4 shadow-sm"
-            >
-              <p className="font-black">
-                {day.toLocaleDateString('en-CA', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </p>
-              <p className="mb-3 text-xs font-bold text-stone-500">
-                {dogs}/{snapshot.settings.boardingCapacity} dogs
-              </p>
-              <div className="space-y-2">
-                {bookings.map((booking) => (
-                  <p
+            <Card key={key}>
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-sm">
+                      {day.toLocaleDateString('en-CA', { weekday: 'short' })}
+                    </CardTitle>
+                    <CardDescription>
+                      {day.toLocaleDateString('en-CA', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline">
+                    {dogCount}/{snapshot.settings.boardingCapacity}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="min-h-24 space-y-2 p-4 pt-2">
+                {dayBookings.map((booking) => (
+                  <div
                     key={booking.id}
-                    className="rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-950"
+                    className="rounded-md bg-muted px-2 py-1.5 text-xs"
                   >
                     {dogNames(snapshot, booking.dogIds)}
-                  </p>
+                  </div>
                 ))}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )
         })}
       </div>
-    </section>
+    </Section>
   )
 }
 
 function Invoices({ snapshot }: { snapshot: PawboardSnapshot }) {
   return (
-    <section id="invoices" className="mt-12 scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<FileText />}
-        eyebrow="Invoices and payments"
-        title="Professional, printable invoice records preserve snapshots."
-      />
-      <div className="grid gap-4 lg:grid-cols-3">
+    <Section
+      id="invoices"
+      title="Invoices"
+      description="Invoice snapshots, totals, payments, and balances."
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {snapshot.invoices.map((invoice) => (
-          <article
-            key={invoice.id}
-            className="print-card rounded-3xl border border-stone-200 bg-white p-5 shadow-sm"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-bold text-stone-500">Invoice</p>
-                <h3 className="text-2xl font-black">{invoice.invoiceNumber}</h3>
+          <Card key={invoice.id} className="print-card">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle>{invoice.invoiceNumber}</CardTitle>
+                  <CardDescription>
+                    {invoice.snapshot.ownerName}
+                  </CardDescription>
+                </div>
+                <InvoiceBadge status={invoice.status} />
               </div>
-              <Badge>{invoice.status}</Badge>
-            </div>
-            <div className="mt-5 space-y-2 text-sm">
-              <p>
-                <strong>Bill to:</strong> {invoice.snapshot.ownerName}
-              </p>
-              <p>
-                <strong>Dogs:</strong> {invoice.snapshot.dogNames.join(', ')}
-              </p>
-              <p>
-                <strong>Subtotal:</strong> {formatMoney(invoice.subtotalCents)}
-              </p>
-              <p>
-                <strong>HST:</strong> {formatMoney(invoice.taxCents)}
-              </p>
-              <p className="text-lg">
-                <strong>Total:</strong> {formatMoney(invoice.totalCents)}
-              </p>
-              <p>
-                <strong>Paid:</strong> {formatMoney(invoice.paidCents)} ·{' '}
-                <strong>Balance:</strong> {formatMoney(invoice.balanceCents)}
-              </p>
-            </div>
-            <button
-              onClick={() => window.print()}
-              className="no-print mt-5 w-full rounded-2xl bg-stone-900 px-4 py-3 font-bold text-white"
-            >
-              Print invoice
-            </button>
-          </article>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                {invoice.snapshot.dogNames.join(', ')}
+              </div>
+              <div className="space-y-2 text-sm">
+                <MoneyRow label="Subtotal" value={invoice.subtotalCents} />
+                <MoneyRow label="HST" value={invoice.taxCents} />
+                <Separator />
+                <MoneyRow label="Total" value={invoice.totalCents} strong />
+                <MoneyRow label="Paid" value={invoice.paidCents} />
+                <MoneyRow
+                  label="Balance"
+                  value={invoice.balanceCents}
+                  strong={invoice.balanceCents > 0}
+                />
+              </div>
+              <Button
+                variant="outline"
+                className="no-print w-full"
+                onClick={() => window.print()}
+              >
+                Print invoice
+              </Button>
+            </CardContent>
+          </Card>
         ))}
       </div>
-    </section>
+    </Section>
   )
 }
 
 function Exports({ snapshot }: { snapshot: PawboardSnapshot }) {
-  const csvs = [
+  const exports = [
     ['Owners CSV', ownersCsv(snapshot)],
     ['Dogs CSV', dogsCsv(snapshot)],
     ['Bookings CSV', bookingsCsv(snapshot)],
     ['Invoices CSV', invoicesCsv(snapshot)],
-    ['Full backup JSON', JSON.stringify(snapshot, null, 2)],
+    ['Backup JSON', JSON.stringify(snapshot, null, 2)],
   ]
+
   return (
-    <section id="exports" className="mt-12 scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<Download />}
-        eyebrow="Data safety"
-        title="CSV exports and full JSON backup are always one click away."
-      />
+    <Section
+      id="exports"
+      title="Exports"
+      description="CSV exports and full JSON backup."
+    >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {csvs.map(([label, content]) => (
+        {exports.map(([label, content]) => (
           <DownloadButton key={label} label={label} content={content} />
         ))}
       </div>
-      <Audit snapshot={snapshot} />
-    </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck size={18} /> Audit history
+          </CardTitle>
+          <CardDescription>
+            Recent changes and operational events.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Action</TableHead>
+                <TableHead>Summary</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {snapshot.auditLogs.map((log) => (
+                <TableRow key={log.id}>
+                  <TableCell>
+                    <Badge variant="outline">{log.action}</Badge>
+                  </TableCell>
+                  <TableCell>{log.summary}</TableCell>
+                  <TableCell>{shortDate(log.createdAt)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </Section>
   )
 }
 
 function SettingsPanel({ snapshot }: { snapshot: PawboardSnapshot }) {
   return (
-    <section id="settings" className="mt-12 scroll-mt-8 space-y-6">
-      <SectionTitle
-        icon={<Settings />}
-        eyebrow="Business settings"
-        title="Rates, tax, invoice numbering, and payment instructions."
-      />
+    <Section
+      id="settings"
+      title="Settings"
+      description="Business profile, invoice defaults, and service rates."
+    >
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 font-black">Business profile</h3>
-          {[
-            ['Business', snapshot.settings.businessName],
-            ['Address', snapshot.settings.address],
-            ['Phone', snapshot.settings.phone],
-            ['Email', snapshot.settings.email],
-            ['HST', snapshot.settings.hstNumber],
-            [
-              'Invoice prefix',
-              `${snapshot.settings.invoicePrefix} · next ${snapshot.settings.nextInvoiceNumber}`,
-            ],
-          ].map(([label, value]) => (
-            <p key={label} className="border-b border-stone-100 py-2 text-sm">
-              <strong>{label}:</strong> {value}
-            </p>
-          ))}
-        </div>
-        <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 font-black">Services and rates</h3>
-          {snapshot.serviceTypes.map((service) => (
-            <div
-              key={service.id}
-              className="flex items-center justify-between border-b border-stone-100 py-3 text-sm last:border-0"
-            >
-              <div>
-                <p className="font-bold">{service.name}</p>
-                <p className="text-stone-500">
-                  Per {service.unit} · taxable: {service.taxable ? 'yes' : 'no'}
-                </p>
-              </div>
-              <p className="font-black">
-                {formatMoney(service.defaultRateCents)}
-              </p>
-            </div>
-          ))}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Business profile</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <KeyValue label="Business" value={snapshot.settings.businessName} />
+            <KeyValue label="Address" value={snapshot.settings.address} />
+            <KeyValue label="Phone" value={snapshot.settings.phone} />
+            <KeyValue label="Email" value={snapshot.settings.email} />
+            <KeyValue label="HST" value={snapshot.settings.hstNumber} />
+            <KeyValue
+              label="Invoice prefix"
+              value={snapshot.settings.invoicePrefix}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Services</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Unit</TableHead>
+                  <TableHead className="text-right">Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {snapshot.serviceTypes.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="font-medium">
+                      {service.name}
+                    </TableCell>
+                    <TableCell>{service.unit}</TableCell>
+                    <TableCell className="text-right">
+                      {formatMoney(service.defaultRateCents)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
+    </Section>
+  )
+}
+
+function Section({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string
+  title: string
+  description: string
+  children: ReactNode
+}) {
+  return (
+    <section id={id} className="scroll-mt-20 space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      {children}
     </section>
   )
 }
 
-function Audit({ snapshot }: { snapshot: PawboardSnapshot }) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 flex items-center gap-2 font-black">
-        <ShieldCheck size={18} /> Audit history
-      </h3>
-      <div className="space-y-3">
-        {snapshot.auditLogs.map((log) => (
-          <p key={log.id} className="rounded-2xl bg-stone-50 p-3 text-sm">
-            <strong>{log.action}</strong> · {log.summary}
-          </p>
-        ))}
-      </div>
-    </div>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardDescription>{label}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
   )
 }
 
-function SectionTitle({
-  icon,
-  eyebrow,
+function BookingCard({
   title,
-}: {
-  icon: React.ReactNode
-  eyebrow: string
-  title: string
-}) {
-  return (
-    <div>
-      <p className="mb-2 flex items-center gap-2 text-sm font-black uppercase tracking-wide text-amber-800">
-        {icon}
-        {eyebrow}
-      </p>
-      <h2 className="text-3xl font-black tracking-tight lg:text-4xl">
-        {title}
-      </h2>
-    </div>
-  )
-}
-
-function Metric({
-  label,
-  value,
-  tone = 'default',
-}: {
-  label: string
-  value: string
-  tone?: 'default' | 'warn'
-}) {
-  return (
-    <div
-      className={`rounded-3xl border p-5 shadow-sm ${tone === 'warn' ? 'border-amber-200 bg-amber-50' : 'border-stone-200 bg-white'}`}
-    >
-      <p className="text-sm font-bold text-stone-500">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
-    </div>
-  )
-}
-
-function Board({
-  title,
-  empty,
   items,
   snapshot,
 }: {
   title: string
-  empty: string
   items: Booking[]
   snapshot: PawboardSnapshot
 }) {
   return (
-    <div className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-4 font-black">{title}</h3>
-      {items.length ? (
-        <div className="space-y-3">
-          {items.map((booking) => (
-            <a
-              key={booking.id}
-              href="#bookings"
-              className="block rounded-2xl bg-stone-50 p-4 hover:bg-amber-50"
-            >
-              <p className="font-black">{dogNames(snapshot, booking.dogIds)}</p>
-              <p className="text-sm text-stone-500">
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {items.length ? (
+          items.map((booking) => (
+            <div key={booking.id} className="rounded-md border p-3 text-sm">
+              <div className="font-medium">
+                {dogNames(snapshot, booking.dogIds)}
+              </div>
+              <div className="text-muted-foreground">
                 {ownerName(snapshot, booking.ownerId)} ·{' '}
                 {serviceName(snapshot, booking.serviceTypeId)} ·{' '}
                 {shortDate(booking.startAt)}
-              </p>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <EmptyState text={empty} />
-      )}
-    </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <EmptyState>No items.</EmptyState>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-stone-300 p-5 text-sm font-semibold text-stone-500">
-      <Heart className="mb-2" size={18} />
-      {text}
-    </div>
-  )
-}
-
-function Status({ active }: { active: boolean }) {
-  return (
-    <span
-      className={`rounded-full px-2 py-1 text-xs font-black ${active ? 'bg-green-100 text-green-800' : 'bg-stone-100 text-stone-500'}`}
-    >
-      {active ? 'active' : 'inactive'}
-    </span>
-  )
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-black capitalize text-stone-700">
+    <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
       {children}
-    </span>
+    </div>
   )
 }
 
-function InvoiceRow({ invoice }: { invoice: Invoice }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <a
-      href="#invoices"
-      className="block rounded-2xl bg-stone-50 p-4 hover:bg-amber-50"
+    <label className="space-y-2 text-sm font-medium">
+      {label}
+      {children}
+    </label>
+  )
+}
+
+function StatusBadge({ status }: { status: Booking['status'] }) {
+  const variant =
+    status === 'checked_in'
+      ? 'success'
+      : status === 'cancelled'
+        ? 'muted'
+        : status === 'inquiry'
+          ? 'warning'
+          : 'outline'
+  return (
+    <Badge variant={variant} className="capitalize">
+      {status.replace('_', ' ')}
+    </Badge>
+  )
+}
+
+function InvoiceBadge({ status }: { status: Invoice['status'] }) {
+  return (
+    <Badge
+      variant={
+        status === 'paid'
+          ? 'success'
+          : status === 'sent'
+            ? 'warning'
+            : 'outline'
+      }
+      className="capitalize"
     >
-      <p className="font-black">
-        {invoice.invoiceNumber} · {invoice.snapshot.ownerName}
-      </p>
-      <p className="text-sm text-stone-500">
-        Balance {formatMoney(invoice.balanceCents)}
-      </p>
-    </a>
+      {status}
+    </Badge>
+  )
+}
+
+function InvoiceMini({ invoice }: { invoice: Invoice }) {
+  return (
+    <div className="rounded-md border p-3 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="font-medium">{invoice.invoiceNumber}</div>
+        <div>{formatMoney(invoice.balanceCents)}</div>
+      </div>
+      <div className="text-muted-foreground">{invoice.snapshot.ownerName}</div>
+    </div>
+  )
+}
+
+function MoneyRow({
+  label,
+  value,
+  strong,
+}: {
+  label: string
+  value: number
+  strong?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between',
+        strong && 'font-medium',
+      )}
+    >
+      <span className="text-muted-foreground">{label}</span>
+      <span>{formatMoney(value)}</span>
+    </div>
+  )
+}
+
+function KeyValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1 text-sm">
+      <div className="text-muted-foreground">{label}</div>
+      <div>{value || '—'}</div>
+    </div>
   )
 }
 
 function SearchResults({ results }: { results: ReturnType<typeof search> }) {
   return (
-    <div className="mt-3 max-h-72 overflow-auto rounded-2xl bg-stone-950/80 p-3 text-sm text-white">
-      {results.length ? (
-        results.map((result) => (
-          <a
-            key={result.href + result.title}
-            href={result.href}
-            className="block rounded-xl px-3 py-2 hover:bg-white/10"
-          >
-            <strong>{result.type}</strong> · {result.title}
-            <br />
-            <span className="text-stone-300">{result.detail}</span>
-          </a>
-        ))
-      ) : (
-        <p className="px-3 py-2 text-stone-300">No matches yet.</p>
-      )}
-    </div>
+    <Card className="absolute right-0 top-12 z-40 w-full shadow-lg">
+      <CardContent className="p-2">
+        {results.length ? (
+          results.map((result) => (
+            <a
+              key={result.href + result.title}
+              href={result.href}
+              className="block rounded-md px-3 py-2 text-sm hover:bg-accent"
+            >
+              <div className="font-medium">{result.title}</div>
+              <div className="text-xs text-muted-foreground">
+                {result.type} · {result.detail}
+              </div>
+            </a>
+          ))
+        ) : (
+          <div className="px-3 py-2 text-sm text-muted-foreground">
+            No results
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -848,26 +945,23 @@ function DownloadButton({
   content: string
 }) {
   const download = () => {
+    const isJson = label.endsWith('JSON')
     const blob = new Blob([content], {
-      type: label.endsWith('JSON') ? 'application/json' : 'text/csv',
+      type: isJson ? 'application/json' : 'text/csv',
     })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download =
-      label.toLowerCase().replaceAll(' ', '-') +
-      (label.endsWith('JSON') ? '.json' : '.csv')
+      label.toLowerCase().replaceAll(' ', '-') + (isJson ? '.json' : '.csv')
     anchor.click()
     URL.revokeObjectURL(url)
   }
   return (
-    <button
-      onClick={download}
-      className="rounded-3xl border border-stone-200 bg-white p-5 text-left font-black shadow-sm hover:bg-amber-50"
-    >
-      <Download className="mb-3" />
+    <Button variant="outline" onClick={download}>
+      <Download size={16} />
       {label}
-    </button>
+    </Button>
   )
 }
 
@@ -913,6 +1007,7 @@ function csv(rows: string[][]) {
     )
     .join('\n')
 }
+
 function ownersCsv(snapshot: PawboardSnapshot) {
   return csv([
     ['First name', 'Last name', 'Phone', 'Email'],
@@ -924,6 +1019,7 @@ function ownersCsv(snapshot: PawboardSnapshot) {
     ]),
   ])
 }
+
 function dogsCsv(snapshot: PawboardSnapshot) {
   return csv([
     ['Name', 'Owner', 'Breed', 'Care notes'],
@@ -935,6 +1031,7 @@ function dogsCsv(snapshot: PawboardSnapshot) {
     ]),
   ])
 }
+
 function bookingsCsv(snapshot: PawboardSnapshot) {
   return csv([
     ['Owner', 'Dogs', 'Service', 'Start', 'End', 'Status', 'Total'],
@@ -949,6 +1046,7 @@ function bookingsCsv(snapshot: PawboardSnapshot) {
     ]),
   ])
 }
+
 function invoicesCsv(snapshot: PawboardSnapshot) {
   return csv([
     ['Invoice', 'Owner', 'Status', 'Total', 'Paid', 'Balance'],
