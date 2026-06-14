@@ -27,6 +27,8 @@ interface Props {
   serviceTypes: ServiceType[]
   hstRate: number
   booking?: Booking
+  /** Local YYYY-MM-DD to prefill the start date when creating a new booking. */
+  defaultDate?: string
 }
 
 interface FormState {
@@ -49,8 +51,11 @@ const statuses: Booking['status'][] = [
 ]
 const methods: PaymentMethod[] = ['etransfer', 'cash', 'card', 'other']
 
-function defaultRange() {
-  const start = new Date()
+function defaultRange(baseDate?: string) {
+  const start =
+    baseDate && /^\d{4}-\d{2}-\d{2}$/.test(baseDate)
+      ? new Date(`${baseDate}T17:00`)
+      : new Date()
   start.setHours(17, 0, 0, 0)
   const end = new Date(start)
   end.setDate(end.getDate() + 1)
@@ -69,6 +74,7 @@ export function BookingFormDialog({
   serviceTypes,
   hstRate,
   booking,
+  defaultDate,
 }: Props) {
   const buildInitial = (): FormState => {
     if (booking) {
@@ -83,7 +89,7 @@ export function BookingFormDialog({
         internalNotes: booking.internalNotes,
       }
     }
-    const range = defaultRange()
+    const range = defaultRange(defaultDate)
     return {
       ownerId: owners[0]?.id ?? '',
       serviceTypeId: serviceTypes[0]?.id ?? '',
@@ -114,7 +120,7 @@ export function BookingFormDialog({
       setValues(buildInitial())
     }
     // buildInitial is recomputed each render; only re-init when reopened.
-  }, [open, booking])
+  }, [open, booking, defaultDate])
 
   const ownerDogs = useMemo(
     () => dogs.filter((dog) => dog.ownerId === values.ownerId),
