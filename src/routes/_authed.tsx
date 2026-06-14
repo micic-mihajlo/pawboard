@@ -13,6 +13,7 @@ import { ToastProvider } from '../components/ui/toast'
 import { Sheet } from '../components/ui/sheet'
 import { AppTopbar } from '../components/layout/app-topbar'
 import { SidebarNav } from '../components/layout/sidebar-nav'
+import { AskAI } from '../components/assistant/ask-ai'
 
 export const Route = createFileRoute('/_authed')({
   beforeLoad: async () => {
@@ -52,6 +53,7 @@ function AuthedLayout() {
             <Outlet />
           </main>
         </div>
+        <AskAI />
       </div>
     </ToastProvider>
   )
