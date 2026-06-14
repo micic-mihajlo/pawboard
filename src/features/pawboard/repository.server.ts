@@ -1,9 +1,6 @@
-import { eq } from 'drizzle-orm'
-import { seedSnapshot } from '../../data/seed'
 import type {
   AuditLogEntry,
   Booking,
-  BookingStatus,
   Dog,
   Invoice,
   Owner,
@@ -11,8 +8,8 @@ import type {
   Payment,
   ServiceType,
 } from '../../domain/pawboard'
-import { getDb, hasDatabaseUrl } from '../../db/client.server'
 import * as schema from '../../db/schema'
+import { requireDb } from './db-helpers.server'
 
 function iso(value: Date | string | null | undefined) {
   if (!value) return null
@@ -154,9 +151,7 @@ function metrics(snapshot: Omit<PawboardSnapshot, 'metrics'>) {
 }
 
 export async function getPawboardSnapshot(): Promise<PawboardSnapshot> {
-  if (!hasDatabaseUrl()) return seedSnapshot
-  const db = getDb()
-  if (!db) return seedSnapshot
+  const db = requireDb()
 
   const [
     settingsRows,
@@ -180,7 +175,11 @@ export async function getPawboardSnapshot(): Promise<PawboardSnapshot> {
     db.select().from(schema.auditLogs),
   ])
 
-  if (!settingsRows.length) return seedSnapshot
+  if (!settingsRows.length) {
+    throw new Error(
+      'Database has no business settings. Run `npm run db:seed` to load initial data.',
+    )
+  }
 
   const snapshot = {
     settings: settingsFromRow(settingsRows[0]),
@@ -194,27 +193,4 @@ export async function getPawboardSnapshot(): Promise<PawboardSnapshot> {
   }
 
   return { ...snapshot, metrics: metrics(snapshot) }
-}
-
-export async function updateBookingStatus(id: string, status: BookingStatus) {
-  if (!hasDatabaseUrl()) return getPawboardSnapshot()
-  const db = getDb()
-  if (!db) return getPawboardSnapshot()
-  const now = new Date()
-  await db
-    .update(schema.bookings)
-    .set({
-      status,
-      checkedInAt: status === 'checked_in' ? now : undefined,
-      checkedOutAt: status === 'checked_out' ? now : undefined,
-      updatedAt: now,
-    })
-    .where(eq(schema.bookings.id, id))
-  await db.insert(schema.auditLogs).values({
-    action: status,
-    entityType: 'booking',
-    entityId: id,
-    summary: `Booking marked ${status.replace('_', ' ')}.`,
-  })
-  return getPawboardSnapshot()
 }
