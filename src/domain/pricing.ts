@@ -23,6 +23,27 @@ export interface PriceInput {
   paymentMethod?: PaymentMethod
 }
 
+/**
+ * Effective per-unit rate for a dog on a given service: the dog's boarding
+ * override for night services, its daycare override for day services, else the
+ * service's base rate.
+ */
+export function dogRateForService(
+  dog: {
+    customBoardingRateCents: number | null
+    customDaycareRateCents: number | null
+  },
+  service: Pick<ServiceType, 'unit' | 'defaultRateCents'>,
+): number {
+  if (service.unit === 'night' && dog.customBoardingRateCents != null) {
+    return dog.customBoardingRateCents
+  }
+  if (service.unit === 'day' && dog.customDaycareRateCents != null) {
+    return dog.customDaycareRateCents
+  }
+  return service.defaultRateCents
+}
+
 /** HST applies only when the service is taxable and payment is not cash. */
 export function appliesHst(
   taxable: boolean,

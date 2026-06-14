@@ -3,6 +3,7 @@ import * as schema from '../../../db/schema'
 import {
   calculateInvoiceTotals,
   calculatePriceQuote,
+  dogRateForService,
   generateInvoiceNumber,
 } from '../../../domain/pricing'
 import type {
@@ -58,7 +59,7 @@ export async function createInvoiceFromBooking(input: CreateInvoiceInput) {
     const priceDogs = dogRows.length
       ? dogRows.map((dog) => ({
           name: dog.name,
-          rateCents: dog.customRateCents ?? service.defaultRateCents,
+          rateCents: dogRateForService(dog, service),
         }))
       : careNotes.map((note) => ({
           name: note.dogName,

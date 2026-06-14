@@ -63,8 +63,10 @@ export interface Dog {
   behaviourNotes: string
   compatibilityNotes: string
   careNotes: string
-  /** Optional per-unit rate override in cents. Null = use the service base rate. */
-  customRateCents: number | null
+  /** Optional per-night boarding rate override in cents. Null = service base rate. */
+  customBoardingRateCents: number | null
+  /** Optional per-day daycare rate override in cents. Null = service base rate. */
+  customDaycareRateCents: number | null
   active: boolean
   createdAt: string
   updatedAt: string

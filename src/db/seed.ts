@@ -128,7 +128,8 @@ async function main() {
           behaviourNotes: dog.behaviourNotes,
           compatibilityNotes: dog.compatibilityNotes,
           careNotes: dog.careNotes,
-          customRateCents: dog.customRateCents,
+          customBoardingRateCents: dog.customBoardingRateCents,
+          customDaycareRateCents: dog.customDaycareRateCents,
           active: dog.active,
         })),
       )

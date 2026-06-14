@@ -52,11 +52,11 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'animate-dialog-in bg-card text-card-foreground relative z-10 my-auto w-full max-w-lg rounded-xl border shadow-2xl',
+          'animate-dialog-in bg-card text-card-foreground relative z-10 my-auto flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col rounded-xl border shadow-2xl',
           className,
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b px-6 py-4">
           <div className="space-y-1">
             <h2 className="text-base font-semibold tracking-tight">{title}</h2>
             {description ? (
@@ -72,9 +72,9 @@ export function Dialog({
             <X size={16} />
           </button>
         </div>
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer ? (
-          <div className="bg-muted/30 flex items-center justify-end gap-2 rounded-b-xl border-t px-6 py-4">
+          <div className="bg-muted/30 flex shrink-0 items-center justify-end gap-2 rounded-b-xl border-t px-6 py-4">
             {footer}
           </div>
         ) : null}

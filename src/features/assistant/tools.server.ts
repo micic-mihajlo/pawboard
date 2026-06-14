@@ -17,7 +17,11 @@ import {
   ownerInputSchema,
   recordPaymentSchema,
 } from '../pawboard/schemas'
-import { calculatePriceQuote, formatMoney } from '../../domain/pricing'
+import {
+  calculatePriceQuote,
+  dogRateForService,
+  formatMoney,
+} from '../../domain/pricing'
 import type { PawboardSnapshot } from '../../domain/pawboard'
 import type { JsonValue, PendingAction } from './types'
 
@@ -72,10 +76,15 @@ export const toolDefs: ToolDef[] = [
         feedingInstructions: str('Feeding instructions'),
         medicationInstructions: str('Medication instructions'),
         careNotes: str('Care notes'),
-        customRateCents: {
+        customBoardingRateCents: {
           type: 'number',
           description:
-            "Optional custom per-night/day rate in cents that overrides the service base rate for this dog (e.g. 5000 = $50).",
+            'Optional custom boarding rate per night in cents, overriding the base rate (e.g. 5000 = $50).',
+        },
+        customDaycareRateCents: {
+          type: 'number',
+          description:
+            'Optional custom daycare rate per day in cents, overriding the base rate.',
         },
       },
       ['ownerId', 'name'],
@@ -311,10 +320,14 @@ export function describeAction(
     case 'create_dog': {
       label = 'Add dog'
       const owner = ownerName(field('ownerId'))
-      const rate =
-        args.customRateCents != null
-          ? `· ${formatMoney(Number(args.customRateCents))}/unit`
-          : ''
+      const rateParts: string[] = []
+      if (args.customBoardingRateCents != null) {
+        rateParts.push(`${formatMoney(Number(args.customBoardingRateCents))}/night`)
+      }
+      if (args.customDaycareRateCents != null) {
+        rateParts.push(`${formatMoney(Number(args.customDaycareRateCents))}/day`)
+      }
+      const rate = rateParts.length ? `· ${rateParts.join(', ')}` : ''
       description = [field('name'), owner ? `· owner ${owner}` : '', rate]
         .filter(Boolean)
         .join(' ')
@@ -331,7 +344,10 @@ export function describeAction(
         const d = snapshot?.dogs.find((x) => x.id === dogId)
         return {
           name: d?.name ?? '',
-          rateCents: d?.customRateCents ?? service?.defaultRateCents ?? 0,
+          rateCents:
+            d && service
+              ? dogRateForService(d, service)
+              : (service?.defaultRateCents ?? 0),
         }
       })
       const price =

@@ -1,6 +1,6 @@
 import { eq, inArray } from 'drizzle-orm'
 import * as schema from '../../../db/schema'
-import { calculatePriceQuote } from '../../../domain/pricing'
+import { calculatePriceQuote, dogRateForService } from '../../../domain/pricing'
 import type { BookingStatus } from '../../../domain/pawboard'
 import { requireDb, touch, writeAudit } from '../db-helpers.server'
 import type { Database } from '../db-helpers.server'
@@ -27,7 +27,7 @@ async function priceAndSnapshot(db: Database, input: BookingInput) {
     endAt: input.endAt,
     dogs: dogs.map((dog) => ({
       name: dog.name,
-      rateCents: dog.customRateCents ?? service.defaultRateCents,
+      rateCents: dogRateForService(dog, service),
     })),
     hstRate,
     paymentMethod: input.paymentMethod,
