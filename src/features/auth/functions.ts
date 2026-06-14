@@ -5,15 +5,10 @@ import {
   setCookie,
 } from '@tanstack/react-start/server'
 import { z } from 'zod'
-
-const COOKIE_NAME = 'pawboard_session'
-
-function expectedAccessCode() {
-  return process.env.OPERATOR_ACCESS_CODE || 'demo'
-}
+import { SESSION_COOKIE, expectedAccessCode } from './session'
 
 function isAuthed() {
-  return getCookie(COOKIE_NAME) === expectedAccessCode()
+  return getCookie(SESSION_COOKIE) === expectedAccessCode()
 }
 
 export const getAuthState = createServerFn({ method: 'GET' }).handler(() => ({
@@ -28,7 +23,7 @@ export const signIn = createServerFn({ method: 'POST' })
       return { authenticated: false, error: 'Access code did not match.' }
     }
 
-    setCookie(COOKIE_NAME, data.accessCode, {
+    setCookie(SESSION_COOKIE, data.accessCode, {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
@@ -40,6 +35,6 @@ export const signIn = createServerFn({ method: 'POST' })
   })
 
 export const signOut = createServerFn({ method: 'POST' }).handler(() => {
-  deleteCookie(COOKIE_NAME, { path: '/' })
+  deleteCookie(SESSION_COOKIE, { path: '/' })
   return { authenticated: false }
 })
