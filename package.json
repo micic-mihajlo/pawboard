@@ -2,6 +2,9 @@
   "name": "pawboard",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "imports": {
     "#/*": "./src/*"
   },
@@ -16,6 +19,13 @@
     "check": "prettier --check .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx src/db/seed.ts",
+    "db:seed:prod": "tsx src/db/seed-prod.ts",
+    "db:studio": "drizzle-kit studio",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait && npm run db:migrate && npm run db:seed",
+    "setup": "docker compose up -d --wait && npm run db:migrate && npm run db:seed",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -53,6 +63,7 @@
     "eslint": "^9.20.0",
     "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.5"
